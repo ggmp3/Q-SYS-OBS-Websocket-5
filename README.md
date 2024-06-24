@@ -8,7 +8,7 @@
 
 ## NOTES:
 - A Recording cannot be paused if the recording quality is set to "Same as stream" in OBS.
- Reply Buffer needs to be enabled in OBS (Settings->Output->Reply Buffer) and a recording needs to be active in order to use Reply Buffer controls.
+- Reply Buffer needs to be enabled in OBS (Settings->Output->Reply Buffer) and a recording needs to be active in order to use Reply Buffer controls.
 
 
 ### 13th June 2024 - Glen Gorton
