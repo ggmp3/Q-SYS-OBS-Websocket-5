@@ -1,7 +1,7 @@
 -- Information block for the plugin
 PluginInfo = {
     Name = "OBS~Websocket 5.x.x Protocol", -- Name of the plugin
-    Version = "1.1", -- Current plugin version
+    Version = "1.2", -- Current plugin version
     Id = "qsysc.OBS.Websocket 5 Protocol", -- Unique identifier for the plugin. Must not conflict with other installed plugins
     Description = "Plugin for control of OBS software using the OBS Websocket 5.x.x Protocol.", -- A brief description of the plugin
     BuildVersion = "0.0.0.0", -- Current code iteration tracking
@@ -720,17 +720,23 @@ PluginInfo = {
 - OBS Websocket 5.x.x Q-Sys User Component (obs-websocket 5.x.x Protocol)
 - OBS Protocol URL: https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md
 - Written by Glen Gorton
-- Tested with OBS Version: 30.1.2
+- Built with OBS Version: 30.1.2
 - Developed and tested using Q-SYS Designer v9.10.0
 
 ## NOTES:
-- A Recording cannot be paused if the recording quality is set to "Same as stream" in OBS.
-- Reply Buffer needs to be enabled in OBS (Settings->Output->Reply Buffer) and a recording needs to be active in order to use Reply Buffer controls.
+-- A Recording cannot be paused if the recording quality is set to "Same as stream" in OBS.
+-- Reply Buffer needs to be enabled in OBS (Settings->Output->Reply Buffer) and a recording needs to be active in order to use Reply Buffer controls.
 
+
+### 29th July 2024
+-- Tested with OBS Studio v30.2.2
+-- IP Address field was not changing to Red when IP address was empty. Updated Initialize() function.
+-- Added further check for a valid IP address during Connect() function.
+-- Added further details for status when err == "conn fail: errno 10014" is received -> this can also be a result of OBS being closed on the PC.
+-- Within the ws.Closed eventhandler, commented out the where Controls['Connect'].Boolean is set to false/true.
 
 ### 13th June 2024 - Glen Gorton
-- Added additional error code response (err == "Timed out waiting server reply") to ws.Error = function(ws, err).
-
+-- Added additional error code response (err == "Timed out waiting server reply") to ws.Error = function(ws, err).
 
 ]]--
 
@@ -756,7 +762,11 @@ Controls["Log Severity"].Choices = EventLogSeverity
 function Initialize()
   ResetTextIndicators()
   ResetBooleanIndicators()
-  if Controls["IP Address"].String == "" then return SetStatus(3, "No IP Address") end
+  if Controls["IP Address"].String == "" then
+    SetStatus(3, "No IP Address")
+    Controls["IP Address"].Color = 'Red'
+    ip = ""
+  return end
   ip = Controls['IP Address'].String:match('(%d?%d?%d%.%d?%d?%d%.%d?%d?%d%.%d?%d?%d)')
   Controls["IP Address"].Color = ip and 'Green' or 'Red'
   --SetStatus(ip and 3 or 2, ip and "" or "IP Address Invalid")
@@ -773,8 +783,10 @@ function Connect()
     ResetBooleanIndicators()
     SetStatus(3, "Component Manually Disconnected")
     Disconnect()
-  elseif ip then
+  elseif ip == Controls['IP Address'].String:match('(%d?%d?%d%.%d?%d?%d%.%d?%d?%d%.%d?%d?%d)') then
     ws:Connect("ws", ""..Controls["IP Address"].String.."", "", 4455)
+  elseif ip ~= Controls['IP Address'].String:match('(%d?%d?%d%.%d?%d?%d%.%d?%d?%d%.%d?%d?%d)') then
+    SetStatus(2, "IP Address Invalid")
   end
 end
 
@@ -848,9 +860,9 @@ ws.Error = function(ws, err)
 
   -- If Websocket Server has not been enabled in OBS software, SetStatus to Fault, then attempt a reconnect after 5mins
   if err == "conn fail: errno 10014" then 
-    print("'Enable WebSocket server' has not been enabled in OBS software, or connection attempted while OBS is still starting up. Attempting reconnect...")
+    print("'Enable WebSocket server' has not been enabled in OBS software, connection attempted while OBS is still starting up, or OBS has been closed. Attempting reconnect...")
     -- SetStatus to Fault as websocket was disconnected.
-    SetStatus(2, "'Enable WebSocket server' has not been enabled in OBS software, or connection attempted while OBS is still starting up. Attempting reconnect...")
+    SetStatus(2, "'Enable WebSocket server' has not been enabled in OBS software, connection attempted while OBS is still starting up, or OBS has been closed. Attempting reconnect...")
 
     Timer.CallAfter(function()
       Connect()
@@ -898,7 +910,7 @@ ws.Closed = function(ws)
     -- SetStatus to Initializing as IP Address has been changed. Update ip variable and reconnect after 5 seconds.
     SetStatus(5, "Websocket Closed - IP Address has been changed.")
     Timer.CallAfter(function()
-      Controls['Connect'].Boolean = true
+      --Controls['Connect'].Boolean = true
       ip = Controls['IP Address'].String:match('(%d?%d?%d%.%d?%d?%d%.%d?%d?%d%.%d?%d?%d)')
       Connect()
     end, 5
@@ -908,10 +920,9 @@ ws.Closed = function(ws)
   -- SetStatus to Fault as websocket was disconnected.
   SetStatus(2, "Websocket Closed - OBS unreachable or authentication password may be incorrect. Attempting Reconnect...")
 
-  Controls['Connect'].Boolean = false
-
+  --Controls['Connect'].Boolean = false
   Timer.CallAfter(function()
-    Controls['Connect'].Boolean = true
+    --Controls['Connect'].Boolean = true
     Connect()
     end, 5
   )
