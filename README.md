@@ -19,7 +19,7 @@
 - IP Address field was not changing to Red when IP address was empty. Updated Initialize() function.
 - Added further check for a valid IP address during Connect() function.
 - Added further details for status when err == "conn fail: errno 10014" is received -> this can also be a result of OBS being closed on the PC.
-- Within the ws.Closed eventhandler, commented out the where Controls['Connect'].Boolean is set to false/true.
+- Within the ws.Closed eventhandler, commented out where Controls['Connect'].Boolean is set to false/true.
 
 ### 13th June 2024 - Glen Gorton
 - Added additional error code response (err == "Timed out waiting server reply") to ws.Error = function(ws, err).
