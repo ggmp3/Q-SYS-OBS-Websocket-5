@@ -10,6 +10,9 @@
 - A Recording cannot be paused if the recording quality is set to "Same as stream" in OBS.
 - Reply Buffer needs to be enabled in OBS (Settings->Output->Reply Buffer) and a recording needs to be active in order to use Reply Buffer controls.
 
+### 17th October 2024 (v1.3)
+-- Tested with OBS Studio v30.2.3
+-- During ws.Error event, if err == "closed before established" the script would set the Status to a Fault and return end. Updated this to attempt a reconnect (Connect() function) after 30secs.
 
 ### 29th July 2024
 - Tested with OBS Studio v30.2.2

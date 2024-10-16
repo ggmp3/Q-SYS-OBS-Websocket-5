@@ -1,7 +1,7 @@
 -- Information block for the plugin
 PluginInfo = {
     Name = "OBS~Websocket 5.x.x Protocol", -- Name of the plugin
-    Version = "1.2", -- Current plugin version
+    Version = "1.3", -- Current plugin version
     Id = "qsysc.OBS.Websocket 5 Protocol", -- Unique identifier for the plugin. Must not conflict with other installed plugins
     Description = "Plugin for control of OBS software using the OBS Websocket 5.x.x Protocol.", -- A brief description of the plugin
     BuildVersion = "0.0.0.0", -- Current code iteration tracking
@@ -727,15 +727,18 @@ PluginInfo = {
 -- A Recording cannot be paused if the recording quality is set to "Same as stream" in OBS.
 -- Reply Buffer needs to be enabled in OBS (Settings->Output->Reply Buffer) and a recording needs to be active in order to use Reply Buffer controls.
 
+### 17th October 2024 (v1.3)
+-- Tested with OBS Studio v30.2.3
+-- During ws.Error event, if err == "closed before established" the script would set the Status to a Fault and return end. Updated this to attempt a reconnect (Connect() function) after 30secs.
 
-### 29th July 2024
+### 29th July 2024 (v1.2)
 -- Tested with OBS Studio v30.2.2
 -- IP Address field was not changing to Red when IP address was empty. Updated Initialize() function.
 -- Added further check for a valid IP address during Connect() function.
 -- Added further details for status when err == "conn fail: errno 10014" is received -> this can also be a result of OBS being closed on the PC.
 -- Within the ws.Closed eventhandler, commented out the where Controls['Connect'].Boolean is set to false/true.
 
-### 13th June 2024 - Glen Gorton
+### 13th June 2024 - Glen Gorton (v1.1)
 -- Added additional error code response (err == "Timed out waiting server reply") to ws.Error = function(ws, err).
 
 ]]--
@@ -872,9 +875,14 @@ ws.Error = function(ws, err)
 
   -- If an invalid IP address has been entered, SetStatus to Fault.
   if err == "closed before established" then 
-    print("IP Address may be invalid: "..Controls["IP Address"].String)
+    print("IP Address may be invalid: "..Controls["IP Address"].String..". Attempting Reconnect...")
     -- SetStatus to Fault as websocket was disconnected.
     SetStatus(2, "IP Address may be invalid.")
+
+    Timer.CallAfter(function()
+      Connect()
+      end, 30
+    )
   return end
 
   -- If OBS is unreachable (eg. PC off), SetStatus to Fault, then attempt a reconnect after 30secs
